@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DependentLayout
+    xmlns:ohos="http://schemas.huawei.com/res/ohos"
+    ohos:height="match_parent"
+    ohos:width="match_parent"
+    ohos:orientation="vertical">
+
+    <com.sanyuzhang.circular.viewpager.cvp.view.CircularViewPager
+        ohos:id="$+id:scroll_pager"
+        ohos:height="480vp"
+        ohos:width="match_parent"/>
+
+    <DependentLayout
+        ohos:height="30vp"
+        ohos:width="match_parent"
+        ohos:align_bottom="$+id:scroll_pager"
+        ohos:background_element="$color:bg_title">
+
+        <Text
+            ohos:id="$+id:title"
+            ohos:height="match_parent"
+            ohos:width="match_content"
+            ohos:padding="5vp"
+            ohos:text_color="#ffffff"
+            ohos:text_size="16fp"/>
+
+        <com.sanyuzhang.circular.viewpager.sample.slice.ViewPagerIndicator
+            ohos:id="$+id:indicator"
+            ohos:height="match_content"
+            ohos:width="match_content"
+            ohos:align_parent_right="true"
+            ohos:padding="5vp"
+            ohos:vertical_center="true"/>
+
+    </DependentLayout>
+
+</DependentLayout>

@@ -1,137 +1,143 @@
-CircularViewPager
-=================
-A Circular ViewPager for Android
+# CircularViewPager
 
-CircularViewPager actively supports android versions 4.0.3 (Ice Cream Sandwich) and above.
-That said, it works all the way down to 4.0.3 but is not actively tested or working perfectly.
-- [x] Supports compileSdkVersion 28.0.2
-- [x] Supports Gradle 4.4
+A Circular ViewPager for HarmonyOS.
 
-Here is a short gif showing the functionality you get with this library:
+CircularViewPager actively supports ohos versions 5 and above. That said, it works all the way down to 5 but is not actively tested or working perfectly.
 
-![Demo Gif](https://github.com/sanyuzhang/CircularViewPager/raw/master/Sample/demo/demo.gif)
+- [x] Supports compileSdkVersion 5
+- [x] Supports Gradle 6.3
 
+## Screenshots
 
-Goal
-----
-The goal of this project is to deliver a high performance circular viewpager.
+Here are the screenshots showing the functionality you get with this library:
 
+<p align="center">
+<img src="Screenshot_page1.png" width="280" height="560" title="page1">
+<img src="Screenshot_page2.png" width="280" height="560" title="page2">
+<img src="Screenshot_page3.png" width="280" height="560" title="page3">
+</p>
 
-Installing
----------------
-**Cloning**
-First of all you will have to clone the library.
-```shell
-git clone git@github.com:sanyuzhang/CircularViewPager.git
+## Source
+
+Inspired from android library <https://github.com/sanyuzhang/CircularViewPager/>.
+
+## Add Gradle dependency
+
+1. For using CircularViewPager module in sample app, include the source code and add the below dependencies in entry/build.gradle to generate hap/CircularViewPager.har.
+
+```
+   dependencies {
+       implementation project(':CircularViewPager')
+   }
 ```
 
-Now that you have the library you will have to import it into Android Studio.
-In Android Studio navigate the menus like this.
+2. For using CircularViewPager in separate application using har file, add the har file in the entry/libs folder and add the dependencies in entry/build.gradle file.
+
 ```
-File -> New -> Import Module -> CloneLocation/CircularViewPager/CircularViewPager
-```
-Remember to add this to the build.gradle configuration of your app
-```
-dependencies {
-    ...
-    compile project(':CircularViewPager')
-}
+   dependencies {
+      implementation fileTree(dir: 'libs', include: ['*.har'])     
+   }
 ```
 
-In the following dialog navigate to CircularViewPager which you cloned to your computer in the previous steps and select the `build.gradle`.
+# Usage Instructions
 
-**Maven**
-Upcoming...
+Add the `com.sanyuzhang.circular.viewpager.cvp.view.CircularViewPager to your layout XML file with the following values.
 
-**Gradle**
-Upcoming...
-
-Getting Started
----------------
-**Base usage**
-
-Ok lets start with your activities or fragments xml file. It might look something like this.
-```xml
-<com.sanyuzhang.circular.viewpager.cvp.view.CircularTabLayout
-    android:id="@+id/circular_tab"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="?attr/colorPrimary"
-    app:scrollMillisecondsPerInch="70.0"
-    app:tabIndicatorColor="@color/circular_tab_indicator_color"
-    app:tabIndicatorHeight="@dimen/circular_tab_indicator_height"
-    app:tabMarginEnd="@dimen/circular_tab_margin"
-    app:tabMarginStart="@dimen/circular_tab_margin"
-    app:tabSelectedTextColor="@color/circular_tab_selected_color"
-    app:tabTextAppearance="@style/CircularTabTextAppearance"/>
-
+```
 <com.sanyuzhang.circular.viewpager.cvp.view.CircularViewPager
-    android:id="@+id/circular_viewpager"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="?attr/colorPrimary"/>
+        ohos:id="$+id:scroll_pager"
+        ohos:height="480vp"
+        ohos:width="match_parent"/>
+
+<com.sanyuzhang.circular.viewpager.sample.slice.ViewPagerIndicator
+            ohos:id="$+id:indicator"
+            ohos:height="match_content"
+            ohos:width="match_content"
+            ohos:align_parent_right="true"
+            ohos:padding="5vp"
+            ohos:vertical_center="true"/>
 ```
 
-Now in your activities `onCreate()` or your fragments `onCreateView()` you would want to do something like this
-```java
-CircularTabLayout tabLayout = (CircularTabLayout) findViewById(R.id.circular_tab);
-CircularViewPager viewPager = (CircularViewPager) findViewById(R.id.circular_viewpager);
-MyAdapter adapter = new MyAdapter(getFragmentManager());
-viewPager.setFragmentAdapter(adapter, getFragmentManager());
-tabLayout.setupWithViewPager(viewPager);
+Initialize CircularViewPager to set properties.
+
 ```
+CircularViewPager pager = (CircularViewPager) component.findComponentById(ResourceTable.Id_scroll_pager);
+final Text title = (Text) component.findComponentById(ResourceTable.Id_title);
 
-`MyAdapter` in the above example would look something like this, a list of fragments.
-```java
-class MyAdapter extends FragmentPagerAdapter {
+ViewPagerIndicator indicator = (ViewPagerIndicator) component.findComponentById(ResourceTable.Id_indicator);
 
-    List<Fragment> mFragments = new ArrayList<>();
+pager.addPageChangedListener(new PageSlider.PageChangedListener() {
+    @Override
+    public void onPageSliding(int i, float v, int i1) {
 
-    public MyAdapter(FragmentManager fm) {
-        super(fm);
-        for (int position = 0; position < 5; position++) {
-            mFragments.add(new SampleFragment());
-        }
     }
 
     @Override
-    public Fragment getItem(int position) {
-        return mFragments.get(position);
+    public void onPageSlideStateChanged(int i) {
+
     }
 
+    @Override
+    public void onPageChosen(int i) {
+        title.setText(titles[i]);
+    }
+});
+
+pager.setProvider(new PageSliderProvider() {
     @Override
     public int getCount() {
-        return mFragments.size();
+        return imgs.length;
     }
 
     @Override
-    public CharSequence getPageTitle(int position) {
-        return String.format("Page %d", position);
+    public Object createPageInContainer(ComponentContainer componentContainer, int position) {
+        Image view = new Image(componentContainer.getContext());
+        ComponentContainer.LayoutConfig config = new ComponentContainer.LayoutConfig();
+        config.width = ComponentContainer.LayoutConfig.MATCH_PARENT;
+        config.height = ComponentContainer.LayoutConfig.MATCH_PARENT;
+        view.setLayoutConfig(config);
+        view.setScaleMode(Image.ScaleMode.CLIP_CENTER);
+        view.setPixelMap(imgs[position]);
+        componentContainer.addComponent(view);
+        return view;
     }
 
-}
+    @Override
+    public void destroyPageFromContainer(ComponentContainer componentContainer, int i, Object o) {
+        componentContainer.removeComponent((Component) o);
+    }
+
+    @Override
+    public boolean isPageMatchToObject(Component component, Object o) {
+        return component == o;
+    }
+});
+pager.setScrollFactor(7);
+pager.setPageCacheSize(6);
+pager.setOnPageClickListener(new CircularViewPager.OnPageClickListener() {
+
+    @Override
+    public void onPageClick(CircularViewPager autoScrollPager, int position) {
+        if (toast != null) {
+            toast.cancel();
+            toast = null;
+        }
+        toast = new ToastDialog(context);
+        toastView = (DependentLayout) LayoutScatter.getInstance(getFractionAbility()).parse(ResourceTable.Layout_fraction_toast, null, false);
+        toastText = (Text) toastView.findComponentById(ResourceTable.Id_text);
+        toastText.setText("Clicked page: " + (position + 1));
+        toast.setComponent(toastView);
+        toast.setSize(DirectionalLayout.LayoutConfig.MATCH_CONTENT, DirectionalLayout.LayoutConfig.MATCH_CONTENT);
+        toast.setTransparent(true);
+        toast.setOffset(0, 100);
+        toast.show();
+    }
+});
+indicator.setOnIndicatorClickListener(new ViewPagerIndicator.OnIndicatorClickListener() {
+    @Override
+    public void onClick(int pos) {
+        pager.setCurrentPage(pos);
+    }
+});
+indicator.setViewPager(pager);
 ```
-
-That's it! Look through the API docs below to get know about things to customize and if you have any problems getting started please open an issue as it probably means the getting started guide need some improvement!
-
-**Styling**
-
-You can apply your own theme to `CircularTabLayout`. Say you define a style called `CircularTabTextAppearance` in values/styles.xml:
-```xml
-<resources>
-    <style name="CircularTabTextAppearance" parent="@style/TextAppearance.Design.Tab">
-        <item name="android:textSize">@dimen/circular_tab_textsize</item>
-        <item name="android:textColor">@color/colorPrimaryDark</item>
-    </style>
-</resources>
-```
-Then add `CircularTabTextAppearance` to `CircularTabLayout`:
-```xml
-<com.sanyuzhang.circular.viewpager.cvp.view.CircularTabLayout
-    android:id="@+id/circular_tab"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    app:tabTextAppearance="@style/CircularTabTextAppearance"/>
-```
-
-Upcoming...
