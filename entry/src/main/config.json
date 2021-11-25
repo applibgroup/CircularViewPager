@@ -1,0 +1,48 @@
+{
+  "app": {
+    "bundleName": "com.sanyuzhang.circular.viewpager.sample",
+    "vendor": "sanyuzhang",
+    "version": {
+      "code": 1000000,
+      "name": "1.0.0"
+    }
+  },
+  "deviceConfig": {},
+  "module": {
+    "package": "com.sanyuzhang.circular.viewpager.sample",
+    "name": "com.sanyuzhang.circular.viewpager.sample.MyApplication",
+    "mainAbility": "com.sanyuzhang.circular.viewpager.sample.MainAbility",
+    "deviceType": [
+      "phone",
+      "tablet"
+    ],
+    "distro": {
+      "deliveryWithInstall": true,
+      "moduleName": "entry",
+      "moduleType": "entry",
+      "installationFree": false
+    },
+    "abilities": [
+      {
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "action.system.home"
+            ]
+          }
+        ],
+        "configChanges": ["orientation"],
+        "orientation": "unspecified",
+        "name": "com.sanyuzhang.circular.viewpager.sample.MainAbility",
+        "icon": "$media:icon",
+        "description": "$string:mainability_description",
+        "label": "$string:app_name",
+        "type": "page",
+        "launchType": "standard"
+      }
+    ]
+  }
+}
