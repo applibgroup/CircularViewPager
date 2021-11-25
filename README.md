@@ -1,5 +1,7 @@
 [![Build](https://github.com/applibgroup/CircularViewPager/actions/workflows/main.yml/badge.svg)](https://github.com/applibgroup/CircularViewPager/actions/workflows/main.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=applibgroup_CircularViewPager&metric=alert_status)](https://sonarcloud.io/project/configuration?id=applibgroup_CircularViewPager)
+[![license](https://img.shields.io/github/license/applibgroup/CircularViewPager?color=blue)](LICENSE)
+![1.0.0](https://img.shields.io/badge/version-1.0.0-blue.svg)
 
 # CircularViewPager
 
