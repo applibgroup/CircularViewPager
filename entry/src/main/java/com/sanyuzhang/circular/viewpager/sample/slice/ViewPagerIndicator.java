@@ -61,13 +61,13 @@ public class ViewPagerIndicator extends DependentLayout implements Component.Dra
         }
         pageSlider.addPageChangedListener(new PageSlider.PageChangedListener() {
             @Override
-            public void onPageSliding(int i, float v, int i1) {
-
+            public void onPageSliding(int i, float v, int i1) throws UnsupportedOperationException {
+                // Empty on purpose. Implement this method if required.
             }
 
             @Override
-            public void onPageSlideStateChanged(int i) {
-
+            public void onPageSlideStateChanged(int i) throws UnsupportedOperationException {
+                // Empty on purpose. Implement this method if required.
             }
 
             @Override
@@ -84,7 +84,7 @@ public class ViewPagerIndicator extends DependentLayout implements Component.Dra
     @Override
     public void onDraw(Component component, Canvas canvas) {
         for (int i = 0; i < count; i++) {
-            float x = (float) (getPaddingLeft() + (double)radius + ((double)circlePadding + (double)radius * 2) * i);
+            float x = (float) (getPaddingLeft() + radius + (circlePadding + radius * 2) * i);
             float y = radius * 2;
             paint.reset();
             if (selectPos == i) {
@@ -110,17 +110,15 @@ public class ViewPagerIndicator extends DependentLayout implements Component.Dra
     @Override
     public boolean onTouchEvent(Component component, TouchEvent touchEvent) {
         int action = touchEvent.getAction();
-        switch (action) {
-            case TouchEvent.PRIMARY_POINT_DOWN:
-                float x = touchEvent.getPointerPosition(touchEvent.getIndex()).getX();
-                float y = touchEvent.getPointerPosition(touchEvent.getIndex()).getY();
-                int pos = getClickPos(x, y);
-                if (pos > -1) {
-                    if (listener != null) {
-                        listener.onClick(pos);
-                    }
+        if (action == TouchEvent.PRIMARY_POINT_DOWN) {
+            float x = touchEvent.getPointerPosition(touchEvent.getIndex()).getX();
+            float y = touchEvent.getPointerPosition(touchEvent.getIndex()).getY();
+            int pos = getClickPos(x, y);
+            if (pos > -1) {
+                if (listener != null) {
+                    listener.onClick(pos);
                 }
-                break;
+            }
         }
         return false;
     }

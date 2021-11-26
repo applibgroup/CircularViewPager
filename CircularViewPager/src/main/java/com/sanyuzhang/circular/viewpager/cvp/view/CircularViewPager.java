@@ -53,14 +53,9 @@ public class CircularViewPager extends PageSlider implements Component.TouchEven
                 return;
             }
             int eventId = event.eventId;
-            switch (eventId) {
-                case MSG_AUTO_SCROLL:
-                    setCurrentPage(getCurrentPage() + 1);
-                    sendEvent(MSG_AUTO_SCROLL, intervalInMillis);
-                    break;
-                default:
-                    super.processEvent(event);
-                    break;
+            if (eventId == MSG_AUTO_SCROLL) {
+                setCurrentPage(getCurrentPage() + 1);
+                sendEvent(MSG_AUTO_SCROLL, intervalInMillis);
             }
         }
     }
@@ -208,11 +203,7 @@ public class CircularViewPager extends PageSlider implements Component.TouchEven
     public boolean onTouchEvent(Component component, TouchEvent touchEvent) {
         switch (touchEvent.getAction()) {
             case TouchEvent.PRIMARY_POINT_DOWN:
-                if (getCurrentItemOfWrapper() + 1 == getCountOfWrapper()) {
-                    setCurrentPage(0, false);
-                } else if (getCurrentItemOfWrapper() == 0) {
-                    setCurrentPage(getCount() - 1, false);
-                }
+                setPage();
                 pauseAutoScroll();
                 mInitialMotionX = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getX();
                 mInitialMotionY = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getY();
@@ -220,11 +211,7 @@ public class CircularViewPager extends PageSlider implements Component.TouchEven
             case TouchEvent.POINT_MOVE:
                 float lastMotionX = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getX();
                 float lastMotionY = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getY();
-                if ((int) Math.abs((double)lastMotionX - (double)mInitialMotionX) > touchSlop
-                        || (int) Math.abs((double)lastMotionY - (double)mInitialMotionY) > touchSlop) {
-                    mInitialMotionX = 0.0f;
-                    mInitialMotionY = 0.0f;
-                }
+                resetInitialMotion(lastMotionX, lastMotionY);
                 break;
             case TouchEvent.PRIMARY_POINT_UP:
                 if (autoScroll) {
@@ -232,28 +219,7 @@ public class CircularViewPager extends PageSlider implements Component.TouchEven
                 }
                 lastMotionX = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getX();
                 lastMotionY = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getY();
-
-                if (scroller != null) {
-                    final double lastFactor = scroller.getFactor();
-                    scroller.setFactor(1);
-                    new EventHandler(EventRunner.getMainEventRunner()).postTask(new Runnable() {
-                        @Override
-                        public void run() {
-                            // Manually swipe not affected by scroll factor.
-                            scroller.setFactor(lastFactor);
-                        }
-                    });
-                    if ((int) mInitialMotionX != 0 && (int) mInitialMotionY != 0) {
-                        if ((int) Math.abs((double)lastMotionX - (double)mInitialMotionX) < touchSlop
-                                && (int) Math.abs((double)lastMotionY - (double)mInitialMotionY) < touchSlop) {
-                            mInitialMotionX = 0.0f;
-                            mInitialMotionY = 0.0f;
-                            if (onPageClickListener != null) {
-                                onPageClickListener.onPageClick(CircularViewPager.this, getCurrentPage());
-                            }
-                        }
-                    }
-                }
+                onPageClick(lastMotionX, lastMotionY);
                 break;
         }
         return true;
@@ -301,6 +267,46 @@ public class CircularViewPager extends PageSlider implements Component.TouchEven
 
     private void pauseAutoScroll() {
         handler.removeEvent(MSG_AUTO_SCROLL);
+    }
+
+    private void setPage() {
+        if (getCurrentItemOfWrapper() + 1 == getCountOfWrapper()) {
+            setCurrentPage(0, false);
+        } else if (getCurrentItemOfWrapper() == 0) {
+            setCurrentPage(getCount() - 1, false);
+        }
+    }
+
+    private void resetInitialMotion(float lastMotionX, float lastMotionY) {
+        if ((int) Math.abs((double)lastMotionX - (double)mInitialMotionX) > touchSlop
+                || (int) Math.abs((double)lastMotionY - (double)mInitialMotionY) > touchSlop) {
+            mInitialMotionX = 0.0f;
+            mInitialMotionY = 0.0f;
+        }
+    }
+
+    private void onPageClick(float lastMotionX, float lastMotionY) {
+        if (scroller != null) {
+            final double lastFactor = scroller.getFactor();
+            scroller.setFactor(1);
+            new EventHandler(EventRunner.getMainEventRunner()).postTask(new Runnable() {
+                @Override
+                public void run() {
+                    // Manually swipe not affected by scroll factor.
+                    scroller.setFactor(lastFactor);
+                }
+            });
+            if ((int) mInitialMotionX != 0 && (int) mInitialMotionY != 0) {
+                if ((int) Math.abs((double) lastMotionX - (double) mInitialMotionX) < touchSlop
+                        && (int) Math.abs((double) lastMotionY - (double) mInitialMotionY) < touchSlop) {
+                    mInitialMotionX = 0.0f;
+                    mInitialMotionY = 0.0f;
+                    if (onPageClickListener != null) {
+                        onPageClickListener.onPageClick(CircularViewPager.this, getCurrentPage());
+                    }
+                }
+            }
+        }
     }
 
     private class InnerOnPageChangeListener implements PageChangedListener {

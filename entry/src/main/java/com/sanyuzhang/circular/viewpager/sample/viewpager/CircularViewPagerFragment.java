@@ -43,13 +43,13 @@ public class CircularViewPagerFragment extends BaseFraction {
 
         pager.addPageChangedListener(new PageSlider.PageChangedListener() {
             @Override
-            public void onPageSliding(int i, float v, int i1) {
-
+            public void onPageSliding(int i, float v, int i1) throws UnsupportedOperationException {
+                // Empty on purpose. Implement this method if required.
             }
 
             @Override
-            public void onPageSlideStateChanged(int i) {
-
+            public void onPageSlideStateChanged(int i) throws UnsupportedOperationException {
+                // Empty on purpose. Implement this method if required.
             }
 
             @Override

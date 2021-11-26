@@ -29,7 +29,6 @@ import java.util.ArrayList;
 
 public class MainAbilitySlice extends AbilitySlice {
     private PageSlider contentPager;
-    private ArrayList<Fraction> dataItem;
 
     @Override
     public void onStart(Intent intent) {
@@ -42,13 +41,13 @@ public class MainAbilitySlice extends AbilitySlice {
         contentPager.setCurrentPage(0);
         contentPager.addPageChangedListener(new PageSlider.PageChangedListener() {
             @Override
-            public void onPageSliding(int i, float v, int i1) {
-
+            public void onPageSliding(int i, float v, int i1) throws UnsupportedOperationException {
+                // Empty on purpose. Implement this method if required.
             }
 
             @Override
-            public void onPageSlideStateChanged(int i) {
-
+            public void onPageSlideStateChanged(int i) throws UnsupportedOperationException {
+                // Empty on purpose. Implement this method if required.
             }
 
             @Override
@@ -59,7 +58,7 @@ public class MainAbilitySlice extends AbilitySlice {
     }
 
     private ArrayList<Fraction> getData() {
-        dataItem = new ArrayList<>();
+        ArrayList<Fraction> dataItem = new ArrayList<>();
         dataItem.add(new CircularViewPagerFragment(this));
         dataItem.add(new TextFragment("Fragment 1"));
         dataItem.add(new TextFragment("Fragment 2"));
