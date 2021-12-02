@@ -1,6 +1,6 @@
 apply plugin: 'com.huawei.ohos.library'
 ohos {
-    compileSdkVersion 5
+    compileSdkVersion 6
     defaultConfig {
         compatibleSdkVersion 4
     }
