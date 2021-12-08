@@ -31,17 +31,25 @@ Inspired from android library <https://github.com/sanyuzhang/CircularViewPager/>
 1.For using CircularViewPager module in sample app, include the source code and add the below dependencies in entry/build.gradle to generate hap/CircularViewPager.har.
 
 ```
-   dependencies {
-       implementation project(':CircularViewPager')
-   }
+    dependencies {
+        implementation project(':CircularViewPager')
+    }
 ```
 
 2.For using CircularViewPager in separate application using har file, add the har file in the entry/libs folder and add the dependencies in entry/build.gradle file.
 
 ```
-   dependencies {
-      implementation fileTree(dir: 'libs', include: ['*.har'])     
-   }
+    dependencies {
+        implementation fileTree(dir: 'libs', include: ['*.har'])     
+    }
+```
+
+3.For using CircularViewPager module from a remote repository in separate application, add the below dependencies in entry/build.gradle file.
+
+```
+    dependencies {
+        implementation 'dev.applibgroup:CircularViewPager:1.0.0'
+    }
 ```
 
 ## Usage
