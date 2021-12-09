@@ -1,226 +1,397 @@
 package com.sanyuzhang.circular.viewpager.cvp.view;
 
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.v4.app.FragmentPagerAdapter;
-import android.support.v4.view.PagerAdapter;
-import android.support.v4.view.ViewPager;
-import android.util.AttributeSet;
-import android.view.ViewGroup;
+import com.sanyuzhang.circular.viewpager.cvp.adapter.CircularViewPagerAdapter;
+import ohos.agp.components.*;
+import ohos.agp.database.DataSetSubscriber;
+import ohos.app.Context;
+import ohos.eventhandler.EventHandler;
+import ohos.eventhandler.EventRunner;
+import ohos.eventhandler.InnerEvent;
+import ohos.multimodalinput.event.TouchEvent;
 
-import com.sanyuzhang.circular.viewpager.cvp.util.CircularUtils;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by j_cho on 2017/10/03.
  */
 
-public class CircularViewPager extends ViewPager {
+public class CircularViewPager extends PageSlider implements Component.TouchEventListener, Component.BindStateChangedListener, ComponentTreeObserver.WindowFocusUpdatedListener {
+    private PageSliderProvider wrappedPagerAdapter;
+    private PageSliderProvider wrapperAdapter;
+    private PageChangedListener mOnPageChangeListener;
+    private CircularScroll scroller;
+    private H handler;
+    private boolean autoScroll = false;
+    private int intervalInMillis;
+    private float mInitialMotionX;
+    private float mInitialMotionY;
+    private int touchSlop;
+    private OnPageClickListener onPageClickListener;
 
-    private int mCurrentPosition = CircularUtils.START_POSITION;
+    private static final int MSG_AUTO_SCROLL = 0;
+    private static final int DEFAULT_INTERNAL_IM_MILLIS = 2000;
 
-    private Map<OnPageChangeListener, InternalOnPageChangeListener> mOnPageChangeListeners;
+    private List<PageChangedListener> mOnPageChangeListeners = new LinkedList<>();
+    private InnerDataSetObserver mObserver = new InnerDataSetObserver();
+    private InnerOnPageChangeListener innerOnPageChangeListener = new InnerOnPageChangeListener();
+    private EventRunner eventRunner = EventRunner.getMainEventRunner();
 
-    private FragmentPagerAdapter mOriginalAdapter;
+    public interface OnPageClickListener {
+        void onPageClick(CircularViewPager pager, int position);
+    }
 
-    private InternalFragmentPagerAdapter mInternalFragmentPagerAdapter;
+    private class H extends EventHandler {
+        private H(EventRunner runner) {
+            super(runner);
+        }
 
-    /**
-     * Constructor.
-     *
-     * @param context
-     */
+        @Override
+        public void processEvent(InnerEvent event) {
+            super.processEvent(event);
+            if (event == null) {
+                return;
+            }
+            int eventId = event.eventId;
+            if (eventId == MSG_AUTO_SCROLL) {
+                setCurrentPage(getCurrentPage() + 1);
+                sendEvent(MSG_AUTO_SCROLL, intervalInMillis);
+            }
+        }
+    }
+
     public CircularViewPager(Context context) {
-        this(context, null);
+        super(context);
+        init();
+    }
+
+    public CircularViewPager(Context context, AttrSet attrs) {
+        super(context, attrs);
+        init();
+    }
+
+    private void init() {
+        super.addPageChangedListener(innerOnPageChangeListener);
+        setTouchEventListener(this);
+        handler = new H(eventRunner);
+        getComponentTreeObserver().addWindowFocusUpdatedListener(this);
+        setBindStateChangedListener(this);
+        touchSlop = ViewConfig.getTouchSlop();
+    }
+
+    @Override
+    public void onComponentBoundToWindow(Component component) {
+        if (autoScroll) {
+            startAutoScroll();
+        }
+    }
+
+    @Override
+    public void onComponentUnboundFromWindow(Component component) {
+        pauseAutoScroll();
+    }
+
+    public void startAutoScroll() {
+        startAutoScroll(intervalInMillis != 0 ? intervalInMillis : DEFAULT_INTERNAL_IM_MILLIS);
+    }
+
+    public void startAutoScroll(int intervalInMillis) {
+        // Only post scroll message when necessary.
+        if (getCount() > 1) {
+            this.intervalInMillis = intervalInMillis;
+            autoScroll = true;
+            pauseAutoScroll();
+            handler.sendEvent(MSG_AUTO_SCROLL, intervalInMillis);
+        }
+    }
+
+    public void stopAutoScroll() {
+        autoScroll = false;
+        pauseAutoScroll();
+    }
+
+    public void setInterval(int intervalInMillis) {
+        this.intervalInMillis = intervalInMillis;
+    }
+
+    public void setScrollFactor(double factor) {
+        setScrollerIfNeeded();
+        scroller.setFactor(factor);
+    }
+
+    public OnPageClickListener getOnPageClickListener() {
+        return onPageClickListener;
+    }
+
+    public void setOnPageClickListener(OnPageClickListener onPageClickListener) {
+        this.onPageClickListener = onPageClickListener;
+    }
+
+    @Override
+    public void onWindowFocusUpdated(boolean hasWindowFocus) {
+        if (autoScroll) {
+            if (hasWindowFocus) {
+                startAutoScroll();
+            } else {
+                pauseAutoScroll();
+            }
+        }
+    }
+
+    public void setOnPageChangeListener(PageChangedListener listener) {
+        mOnPageChangeListener = listener;
+    }
+
+    @Override
+    public void addPageChangedListener(PageChangedListener listener) {
+        mOnPageChangeListeners.add(listener);
+    }
+
+
+    public void clearOnPageChangeListeners() {
+        mOnPageChangeListeners.clear();
+        super.addPageChangedListener(innerOnPageChangeListener);
+    }
+
+    @Override
+    public void setProvider(PageSliderProvider adapter) {
+        if (wrappedPagerAdapter != null && mObserver != null) {
+            wrappedPagerAdapter.removeDataSubscriber(mObserver);
+        }
+        wrappedPagerAdapter = adapter;
+        if (wrappedPagerAdapter != null && mObserver != null) {
+            wrappedPagerAdapter.addDataSubscriber(mObserver);
+        }
+        wrapperAdapter = (wrappedPagerAdapter == null) ? null : new CircularViewPagerAdapter(adapter);
+        super.setProvider(wrapperAdapter);
+
+        setCurrentPage(0, false);
+    }
+
+    @Override
+    public PageSliderProvider getProvider() {
+        // In order to be compatible with ViewPagerIndicator
+        return wrappedPagerAdapter;
+    }
+
+    @Override
+    public void setCurrentPage(int item) {
+        super.setCurrentPage(item + 1);
+    }
+
+    @Override
+    public void setCurrentPage(int item, boolean smoothScroll) {
+        super.setCurrentPage(item + 1, smoothScroll);
+    }
+
+    @Override
+    public int getCurrentPage() {
+        int curr = super.getCurrentPage();
+        if (wrappedPagerAdapter != null && wrappedPagerAdapter.getCount() > 1) {
+            if (curr == 0) {
+                curr = wrappedPagerAdapter.getCount() - 1;
+            } else if (curr == wrapperAdapter.getCount() - 1) {
+                curr = 0;
+            } else {
+                curr = curr - 1;
+            }
+        }
+        return curr;
+    }
+
+    @Override
+    public boolean onTouchEvent(Component component, TouchEvent touchEvent) {
+        switch (touchEvent.getAction()) {
+            case TouchEvent.PRIMARY_POINT_DOWN:
+                setPage();
+                pauseAutoScroll();
+                mInitialMotionX = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getX();
+                mInitialMotionY = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getY();
+                break;
+            case TouchEvent.POINT_MOVE:
+                float lastMotionX = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getX();
+                float lastMotionY = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getY();
+                resetInitialMotion(lastMotionX, lastMotionY);
+                break;
+            case TouchEvent.PRIMARY_POINT_UP:
+                if (autoScroll) {
+                    startAutoScroll();
+                }
+                lastMotionX = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getX();
+                lastMotionY = touchEvent.getPointerScreenPosition(touchEvent.getIndex()).getY();
+                onPageClick(lastMotionX, lastMotionY);
+                break;
+        }
+        return true;
     }
 
     /**
-     * Constructor.
+     * Get current item of the outer wrapper adapter.
      *
-     * @param context
-     * @param attrs
+     * @return CurrentItem
      */
-    public CircularViewPager(Context context, AttributeSet attrs) {
-        super(context, attrs);
-
-        mOnPageChangeListeners = new HashMap<>();
+    private int getCurrentItemOfWrapper() {
+        return super.getCurrentPage();
     }
 
-    @Override
-    public void setCurrentItem(int item) {
-        super.setCurrentItem(movetoPos(item));
-    }
-
-    @Override
-    public PagerAdapter getAdapter() {
-        return mOriginalAdapter;
-    }
-
-    @Override
-    @Deprecated
-    public void setAdapter(PagerAdapter adapter) {
-        super.setAdapter(null);
-    }
-
-    @Override
-    public void addOnPageChangeListener(OnPageChangeListener listener) {
-        mOnPageChangeListeners.put(listener, new InternalOnPageChangeListener(listener));
-        super.addOnPageChangeListener(mOnPageChangeListeners.get(listener));
-    }
-
-    @Override
-    public void removeOnPageChangeListener(OnPageChangeListener listener) {
-        super.removeOnPageChangeListener(mOnPageChangeListeners.remove(listener));
-    }
-
-    private int toRealPos(int dummyPos) {
-        int size = mOriginalAdapter.getCount();
-        int offset = size * 3 / 2 % size;
-        int pos = (dummyPos - offset) % size;
-        pos = pos < 0 ? pos + size : pos;
-        return pos;
-    }
-
-    private int toDummyPos(int realPos) {
-        int currentRealPos = toRealPos(mCurrentPosition);
-        return mCurrentPosition + calcLoopDistance(currentRealPos, realPos);
-    }
-
-    private int calcLoopDistance(int from, int to) {
-        int size = mOriginalAdapter.getCount();
-        int diff = to - from;
-        if (diff < -size / 2) {
-            diff += size;
+    /**
+     * Get item count of the outer wrapper adapter.
+     *
+     * @return CurrentItem
+     */
+    private int getCountOfWrapper() {
+        if (wrapperAdapter != null) {
+            return wrapperAdapter.getCount();
         }
-        if (diff > size / 2) {
-            diff -= size;
+        return 0;
+    }
+
+    /**
+     * Get item count of the adapter which is set by user
+     *
+     * @return CurrentItem
+     */
+    private int getCount() {
+        if (wrappedPagerAdapter != null) {
+            return wrappedPagerAdapter.getCount();
         }
-        return diff;
+        return 0;
     }
 
-    public int movetoPos(int realPos) {
-        int dummyPos = toDummyPos(realPos);
-        setCurrentPosition(dummyPos);
-        return dummyPos;
+    private void setScrollerIfNeeded() {
+        if (scroller != null) {
+            return;
+        }
+        scroller = new CircularScroll();
     }
 
-    public int getCurrentPosition() {
-        return mCurrentPosition;
+    private void pauseAutoScroll() {
+        handler.removeEvent(MSG_AUTO_SCROLL);
     }
 
-    private void setCurrentPosition(int pos) {
-        mCurrentPosition = pos;
+    private void setPage() {
+        if (getCurrentItemOfWrapper() + 1 == getCountOfWrapper()) {
+            setCurrentPage(0, false);
+        } else if (getCurrentItemOfWrapper() == 0) {
+            setCurrentPage(getCount() - 1, false);
+        }
     }
 
-    public boolean isSelectedItem(int pos) {
-        return mCurrentPosition == pos;
+    private void resetInitialMotion(float lastMotionX, float lastMotionY) {
+        if ((int) Math.abs((double)lastMotionX - (double)mInitialMotionX) > touchSlop
+                || (int) Math.abs((double)lastMotionY - (double)mInitialMotionY) > touchSlop) {
+            mInitialMotionX = 0.0f;
+            mInitialMotionY = 0.0f;
+        }
     }
 
-    public void setFragmentAdapter(@NonNull FragmentPagerAdapter adapter,
-                                   @NonNull FragmentManager fm) {
-        mOriginalAdapter = adapter;
-        mInternalFragmentPagerAdapter = new InternalFragmentPagerAdapter(fm);
-
-        super.setAdapter(mInternalFragmentPagerAdapter);
-        mCurrentPosition = mOriginalAdapter.getCount() * 3 / 2;
-        super.setCurrentItem(mOriginalAdapter.getCount() * 3 / 2, false);
-
-        addOnPageChangeListener(new SimpleOnPageChangeListener() {
-            @Override
-            public void onPageScrollStateChanged(int state) {
-                if (state == SCROLL_STATE_IDLE) {
-                    int size = mOriginalAdapter.getCount();
-                    if (mCurrentPosition < size / 2 + size % 2) {
-                        mInternalFragmentPagerAdapter.shiftIndex(false);
-                    } else if (mCurrentPosition > size * 2 + size / 2) {
-                        mInternalFragmentPagerAdapter.shiftIndex(true);
+    private void onPageClick(float lastMotionX, float lastMotionY) {
+        if (scroller != null) {
+            final double lastFactor = scroller.getFactor();
+            scroller.setFactor(1);
+            new EventHandler(EventRunner.getMainEventRunner()).postTask(new Runnable() {
+                @Override
+                public void run() {
+                    // Manually swipe not affected by scroll factor.
+                    scroller.setFactor(lastFactor);
+                }
+            });
+            if ((int) mInitialMotionX != 0 && (int) mInitialMotionY != 0) {
+                if ((int) Math.abs((double) lastMotionX - (double) mInitialMotionX) < touchSlop
+                        && (int) Math.abs((double) lastMotionY - (double) mInitialMotionY) < touchSlop) {
+                    mInitialMotionX = 0.0f;
+                    mInitialMotionY = 0.0f;
+                    if (onPageClickListener != null) {
+                        onPageClickListener.onPageClick(CircularViewPager.this, getCurrentPage());
                     }
                 }
             }
-        });
+        }
     }
 
-    private class InternalFragmentPagerAdapter extends FragmentPagerAdapter {
+    private class InnerOnPageChangeListener implements PageChangedListener {
+        private int mLastSelectedPage = -1;
 
-        private Map<String, Integer> mTagPositionMap;
-
-        public InternalFragmentPagerAdapter(FragmentManager fm) {
-            super(fm);
-
-            mTagPositionMap = new HashMap<>();
+        private InnerOnPageChangeListener() {
         }
 
         @Override
-        public Fragment getItem(int position) {
-            return mOriginalAdapter.getItem(toRealPos(position));
-        }
-
-        @Override
-        public Object instantiateItem(ViewGroup container, int position) {
-            Fragment fragment = (Fragment) super.instantiateItem(container, position);
-            mTagPositionMap.put(fragment.getTag(), position);
-            return fragment;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return toRealPos(position);
-        }
-
-        @Override
-        public int getCount() {
-            return mOriginalAdapter.getCount() * 3;
-        }
-
-        @Override
-        public int getItemPosition(Object object) {
-            return mTagPositionMap.get(((Fragment) object).getTag());
-        }
-
-        public void shiftIndex(boolean left) {
-            int size = mOriginalAdapter.getCount();
-
-            if (left) {
-                for (Map.Entry<String, Integer> entry : mTagPositionMap.entrySet()) {
-                    entry.setValue(entry.getValue() - size);
-                }
-                mCurrentPosition = mCurrentPosition - size;
+        public void onPageSliding(int position, float positionOffset, int positionOffsetPixels) {
+            final int pos;
+            // Fix position
+            if (position == 0) {
+                pos = getCount() - 1;
+            } else if (position == getCountOfWrapper() - 1) {
+                pos = 0;
             } else {
-                for (Map.Entry<String, Integer> entry : mTagPositionMap.entrySet()) {
-                    entry.setValue(entry.getValue() + size);
-                }
-                mCurrentPosition = mCurrentPosition + size;
+                pos = position - 1;
             }
-            notifyDataSetChanged();
+            if (mOnPageChangeListener != null) {
+                mOnPageChangeListener.onPageSliding(pos, positionOffset, positionOffsetPixels);
+            }
+            for (PageChangedListener onPageChangeListener : mOnPageChangeListeners) {
+                onPageChangeListener.onPageSliding(pos, positionOffset, positionOffsetPixels);
+            }
+        }
+
+        @Override
+        public void onPageSlideStateChanged(int state) {
+            if (state == SLIDING_STATE_IDLE && getCount() > 1) {
+                if (getCurrentItemOfWrapper() == 0) {
+                    // scroll to the last page
+                    setCurrentPage(getCount() - 1, false);
+                } else if (getCurrentItemOfWrapper() == getCountOfWrapper() - 1) {
+                    // scroll to the first page
+                    setCurrentPage(0, false);
+                }
+            }
+            if (mOnPageChangeListener != null) {
+                mOnPageChangeListener.onPageSlideStateChanged(state);
+            }
+            for (PageChangedListener onPageChangeListener : mOnPageChangeListeners) {
+                onPageChangeListener.onPageSlideStateChanged(state);
+            }
+        }
+
+        @Override
+        public void onPageChosen(int position) {
+            if (mOnPageChangeListener != null || mOnPageChangeListeners.size() > 0) {
+                final int pos;
+                // Fix position
+                if (position == 0) {
+                    pos = getCount() - 1;
+                } else if (position == getCountOfWrapper() - 1) {
+                    pos = 0;
+                } else {
+                    pos = position - 1;
+                }
+
+                if (mLastSelectedPage != pos) {
+                    mLastSelectedPage = pos;
+                    if (mOnPageChangeListener != null) {
+                        mOnPageChangeListener.onPageChosen(pos);
+                    }
+                    for (PageChangedListener onPageChangeListener : mOnPageChangeListeners) {
+                        onPageChangeListener.onPageChosen(pos);
+                    }
+                }
+            }
         }
     }
 
-    private class InternalOnPageChangeListener implements OnPageChangeListener {
-
-        private final OnPageChangeListener mOriginalOnPageChangeListener;
-
-        public InternalOnPageChangeListener(OnPageChangeListener org) {
-            mOriginalOnPageChangeListener = org;
+    private class InnerDataSetObserver extends DataSetSubscriber {
+        @Override
+        public void onChanged() {
+            if (wrapperAdapter != null) {
+                wrapperAdapter.notifyDataChanged();
+            }
         }
 
         @Override
-        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-            mOriginalOnPageChangeListener.onPageScrolled(toRealPos(position), positionOffset,
-                    positionOffsetPixels);
-        }
-
-        @Override
-        public void onPageSelected(int position) {
-            mOriginalOnPageChangeListener.onPageSelected(toRealPos(position));
-        }
-
-        @Override
-        public void onPageScrollStateChanged(int state) {
-            mOriginalOnPageChangeListener.onPageScrollStateChanged(state);
+        public void onInvalidated() {
+            if (wrapperAdapter != null) {
+                wrapperAdapter.notifyDataChanged();
+            }
         }
     }
 }

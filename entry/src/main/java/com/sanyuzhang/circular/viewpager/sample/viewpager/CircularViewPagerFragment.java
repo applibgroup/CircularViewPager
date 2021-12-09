@@ -1,83 +1,27 @@
-[![Build](https://github.com/applibgroup/CircularViewPager/actions/workflows/main.yml/badge.svg)](https://github.com/applibgroup/CircularViewPager/actions/workflows/main.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=applibgroup_CircularViewPager&metric=alert_status)](https://sonarcloud.io/project/configuration?id=applibgroup_CircularViewPager)
-[![license](https://img.shields.io/github/license/applibgroup/CircularViewPager?color=blue)](LICENSE)
-![1.0.0](https://img.shields.io/badge/version-1.0.0-blue.svg)
+/*
+ * Copyright (C) 2020-21 Application Library Engineering Group
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.sanyuzhang.circular.viewpager.sample.viewpager;
 
-# CircularViewPager
+import com.sanyuzhang.circular.viewpager.cvp.view.CircularViewPager;
+import com.sanyuzhang.circular.viewpager.sample.ResourceTable;
+import com.sanyuzhang.circular.viewpager.sample.slice.ViewPagerIndicator;
+import ohos.agp.components.*;
+import ohos.agp.window.dialog.ToastDialog;
+import ohos.app.Context;
 
-A Circular ViewPager for HarmonyOS.
-
-CircularViewPager actively supports ohos versions 5 and above. That said, it works all the way down to 5 but is not actively tested or working perfectly.
-
-- [x] Supports compileSdkVersion 5
-- [x] Supports Gradle 6.3
-
-## Screenshots
-
-Here are the screenshots showing the functionality you get with this library:
-
-<p align="center">
-<img src="images/Screenshot_page1.png" width="280" height="560" title="page1">
-<img src="images/Screenshot_page2.png" width="280" height="560" title="page2">
-<img src="images/Screenshot_page3.png" width="280" height="560" title="page3">
-</p>
-
-## Source
-
-Inspired from android library <https://github.com/sanyuzhang/CircularViewPager/>.
-
-## Integration
-
-1.For using CircularViewPager module in sample app, include the source code and add the below dependencies in entry/build.gradle to generate hap/CircularViewPager.har.
-
-```
-    dependencies {
-        implementation project(':CircularViewPager')
-    }
-```
-
-2.For using CircularViewPager in separate application using har file, add the har file in the entry/libs folder and add the dependencies in entry/build.gradle file.
-
-```
-    dependencies {
-        implementation fileTree(dir: 'libs', include: ['*.har'])     
-    }
-```
-
-3.For using CircularViewPager module from a remote repository in separate application, add the below dependencies in entry/build.gradle file.
-
-```
-    dependencies {
-        implementation 'dev.applibgroup:CircularViewPager:1.0.0'
-    }
-```
-
-## Usage
-
-1.Add CircularViewPager into your layouts or view hierarchy.
-
-Example:
-
-```xml
-<com.sanyuzhang.circular.viewpager.cvp.view.CircularViewPager
-        ohos:id="$+id:scroll_pager"
-        ohos:height="480vp"
-        ohos:width="match_parent"/>
-```
-
-```xml
-<com.sanyuzhang.circular.viewpager.sample.slice.ViewPagerIndicator
-        ohos:id="$+id:indicator"
-        ohos:height="match_content"
-        ohos:width="match_content"
-        ohos:align_parent_right="true"
-        ohos:padding="5vp"
-        ohos:vertical_center="true"/>
-```
-
-2.Initialize CircularViewPager to set properties.
-
-```java
 public class CircularViewPagerFragment extends BaseFraction {
     private String[] titles = {"Page 1", "Page 2", "Page 3", "Page 4", "Page 5"};
     private int[] imgs = {ResourceTable.Media_bg_img1, ResourceTable.Media_bg_img2, ResourceTable.Media_bg_img3, ResourceTable.Media_bg_img4, ResourceTable.Media_bg_img5};
@@ -99,13 +43,13 @@ public class CircularViewPagerFragment extends BaseFraction {
 
         pager.addPageChangedListener(new PageSlider.PageChangedListener() {
             @Override
-            public void onPageSliding(int i, float v, int i1) {
-
+            public void onPageSliding(int i, float v, int i1) throws UnsupportedOperationException {
+                // Empty on purpose. Implement this method if required.
             }
 
             @Override
-            public void onPageSlideStateChanged(int i) {
-
+            public void onPageSlideStateChanged(int i) throws UnsupportedOperationException {
+                // Empty on purpose. Implement this method if required.
             }
 
             @Override
@@ -178,5 +122,3 @@ public class CircularViewPagerFragment extends BaseFraction {
         return ResourceTable.Layout_fraction_circular_view_pager;
     }
 }
-```
-Check the sample app for more information.
